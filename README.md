@@ -1,2 +1,2 @@
 ## run:  
-    >gradle run
+    gradle run
