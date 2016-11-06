@@ -3,8 +3,9 @@ package cn.klzhong.pdfupdater;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        test();
-        System.out.println("done!");
+        // test();
+        // System.out.println("done!");
+        Signatures.test();
     }
 
     private static void test() throws Exception {
