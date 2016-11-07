@@ -15,6 +15,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -120,31 +121,45 @@ public class Signatures {
      * @throws DocumentException
      * @throws GeneralSecurityException
      */
-    public void signPdfSecondTime(String src, String dest)
-        throws IOException, DocumentException, GeneralSecurityException {
-        String path = "resources/encryption/.keystore";
-        String keystore_password = "f00b4r";
-        String key_password = "f1lmf3st";
-        String alias = "foobar";
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-        ks.load(new FileInputStream(path), keystore_password.toCharArray());
-        PrivateKey pk = (PrivateKey) ks.getKey(alias, key_password.toCharArray());
-        Certificate[] chain = ks.getCertificateChain(alias);
-        // reader / stamper
-        PdfReader reader = new PdfReader(src);
-        FileOutputStream os = new FileOutputStream(dest);
-        PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0', null, true);
-        // appearance
-        PdfSignatureAppearance appearance = stamper
-            .getSignatureAppearance();
-        appearance.setReason("I'm approving this.");
-        appearance.setLocation("Foobar");
-        appearance.setVisibleSignature(new Rectangle(160, 732, 232, 780), 1, "second");
-        // digital signature
-        ExternalSignature es = new PrivateKeySignature(pk, "SHA-256", "BC");
-        ExternalDigest digest = new BouncyCastleDigest();
-        MakeSignature.signDetached(appearance, digest, es, chain, null, null, null, 0, MakeSignature.CryptoStandard.CMS);
+    // public void signPdfSecondTime(String src, String dest)
+    //     throws IOException, DocumentException, GeneralSecurityException {
+    //     String path = "src/main/resources/ia.p12";
+    //     String keystore_password = "f00b4r";
+    //     String key_password = "f1lmf3st";
+    //     String alias = "foobar";
+    //     KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+    //     ks.load(new FileInputStream(path), keystore_password.toCharArray());
+    //     PrivateKey pk = (PrivateKey) ks.getKey(alias, key_password.toCharArray());
+    //     Certificate[] chain = ks.getCertificateChain(alias);
+    //     // reader / stamper
+    //     PdfReader reader = new PdfReader(src);
+    //     FileOutputStream os = new FileOutputStream(dest);
+    //     PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0', null, true);
+    //     // appearance
+    //     PdfSignatureAppearance appearance = stamper
+    //         .getSignatureAppearance();
+    //     appearance.setReason("I'm approving this.");
+    //     appearance.setLocation("Foobar");
+    //     appearance.setVisibleSignature(new Rectangle(160, 732, 232, 780), 1, "second");
+    //     // digital signature
+    //     ExternalSignature es = new PrivateKeySignature(pk, "SHA-256", "BC");
+    //     ExternalDigest digest = new BouncyCastleDigest();
+    //     MakeSignature.signDetached(appearance, digest, es, chain, null, null, null, 0, MakeSignature.CryptoStandard.CMS);
 
+    // }
+
+    public void manipulatePdf(String src, String dest) throws IOException, DocumentException {
+        PdfReader reader = new PdfReader(src);
+        PdfStamper stamper = new PdfStamper(reader, new FileOutputStream(dest));
+        Map<String, String> info = reader.getInfo();
+        info.put("Title", "Hello World stamped");
+        info.put("Subject", "Hello World with changed metadata");
+        info.put("Keywords", "iText in Action, PdfStamper");
+        info.put("Creator", "Silly standalone example");
+        info.put("Author", "Also Bruno Lowagie");
+        stamper.setMoreInfo(info);
+        stamper.close();
+        reader.close();
     }
 
     /**
@@ -160,7 +175,7 @@ public class Signatures {
         InputStream is1 = this.getClass().getResourceAsStream(properties.getProperty("ROOTCERT"));
         X509Certificate cert1 = (X509Certificate) cf.generateCertificate(is1);
         ks.setCertificateEntry("cacert", cert1);
-        FileInputStream is2 = new FileInputStream("resources/encryption/foobar.cer");
+        InputStream is2 = this.getClass().getResourceAsStream("/ia.crt");
         X509Certificate cert2 = (X509Certificate) cf.generateCertificate(is2);
         ks.setCertificateEntry("foobar", cert2);
 
@@ -218,7 +233,7 @@ public class Signatures {
         Signatures signatures = new Signatures();
         signatures.createPdf(ORIGINAL);
         signatures.signPdfFirstTime(ORIGINAL, SIGNED1);
-        signatures.signPdfSecondTime(SIGNED1, SIGNED2);
+        signatures.manipulatePdf(SIGNED1, SIGNED2);
         signatures.verifySignatures();
         signatures.extractFirstRevision();
     }
